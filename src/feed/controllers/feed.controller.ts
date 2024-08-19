@@ -1,22 +1,39 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { UpdateResult, DeleteResult } from 'typeorm';
+import { DeleteResult, UpdateResult } from 'typeorm';
 import { FeedPost } from '../models/post.interface';
 import { FeedService } from '../services/feed.service';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { Role } from 'src/auth/models/role.enum';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('feed')
 export class FeedController {
     constructor(private feedService : FeedService){}
     
+    @Roles(Role.ADMIN, Role.PREMIUM)
+    @UseGuards(JwtGuard, RolesGuard)
     
     @Post()
-    create(@Body() feedPost: FeedPost) : Observable<FeedPost> {
-        return this.feedService.createPost(feedPost)
+    create(@Body() feedPost: FeedPost, @Request() req) : Observable<FeedPost> {
+        return this.feedService.createPost(req.user, feedPost)
     }
 
+    // @Get()
+    // findAll() :  Observable<FeedPost[]> {
+    //     return this.feedService.findAllPosts()
+    // }
+
+    //pagination
+
     @Get()
-    findAll() :  Observable<FeedPost[]> {
-        return this.feedService.findAllPosts()
+    findSelected(
+    @Query('take') take : number = 1, 
+    @Query('skip') skip : number = 1,
+    ) :  Observable<FeedPost[]> {
+        take = take > 2 ? 2 : take;
+        return this.feedService.findPosts(take, skip)
     }
 
     @Put(':id')
