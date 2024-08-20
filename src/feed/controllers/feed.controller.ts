@@ -1,12 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Role } from 'src/auth/models/role.enum';
 import { DeleteResult, UpdateResult } from 'typeorm';
+import { IsCreatorGuard } from '../guards/is-creator.guard';
 import { FeedPost } from '../models/post.interface';
 import { FeedService } from '../services/feed.service';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
-import { Role } from 'src/auth/models/role.enum';
-import { Roles } from 'src/auth/decorators/roles.decorator';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('feed')
 export class FeedController {
@@ -14,7 +15,6 @@ export class FeedController {
     
     @Roles(Role.ADMIN, Role.PREMIUM)
     @UseGuards(JwtGuard, RolesGuard)
-    
     @Post()
     create(@Body() feedPost: FeedPost, @Request() req) : Observable<FeedPost> {
         return this.feedService.createPost(req.user, feedPost)
@@ -36,6 +36,9 @@ export class FeedController {
         return this.feedService.findPosts(take, skip)
     }
 
+
+
+    @UseGuards(JwtGuard, IsCreatorGuard)
     @Put(':id')
     update(
         @Param('id') id : number,
@@ -44,6 +47,7 @@ export class FeedController {
         return this.feedService.updatePost(id, feedPost)
     }
 
+    @UseGuards(JwtGuard, IsCreatorGuard)
     @Delete(':id')
     delete(
         @Param('id') id : number
